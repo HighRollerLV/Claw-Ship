@@ -1,5 +1,6 @@
 // src/systems/CollisionDetection.js
-const CollisionDetection = (setScore) => (entities) => {
+// src/systems/CollisionDetection.js
+const CollisionDetection = (setScore, width) => (entities) => {
     const block = entities.block;
     Object.keys(entities).forEach(key => {
         if (key.startsWith("coin")) {
@@ -9,7 +10,13 @@ const CollisionDetection = (setScore) => (entities) => {
                 coin.y < block.y + block.height &&
                 coin.y + coin.height > block.y) {
                 setScore(prevScore => prevScore + 1);
-                coin.y = -1000;
+                // Reset coin position to a new random location
+                let newX = Math.random() * width;
+                let newY = -Math.random() * 500;
+
+                // Check for NaN values
+                coin.x = isNaN(newX) ? 0 : newX;
+                coin.y = isNaN(newY) ? 0 : newY;
             }
         }
     });
@@ -17,3 +24,4 @@ const CollisionDetection = (setScore) => (entities) => {
 };
 
 export default CollisionDetection;
+

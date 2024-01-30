@@ -13,17 +13,24 @@ const {width, height} = Dimensions.get('window');
 
 export default function App() {
     const [score, setScore] = useState(0);
+    const numberOfCoins = 20;
+    const coinWidth = 30;
+    const coinHeight = 30;
+
+    const generateRandomPosition = (index) => {
+        return {
+            x: Math.random() * width,
+            y: -(Math.random() * 500 + index * 50), // Stagger the start position
+            width: coinWidth,
+            height: coinHeight,
+            renderer: Coin
+        };
+    };
 
     const entities = {
         block: {x: 0, y: height - 80, width: 60, height: 30, renderer: Block},
-        ...Array.from({length: 5}).reduce((acc, _, index) => {
-            acc[`coin_${index}`] = {
-                x: Math.random() * width,
-                y: -100,
-                width: 20,
-                height: 20,
-                renderer: Coin
-            };
+        ...Array.from({length: numberOfCoins}).reduce((acc, _, index) => {
+            acc[`coin_${index}`] = generateRandomPosition(index);
             return acc;
         }, {})
     };
@@ -48,4 +55,3 @@ const styles = StyleSheet.create({
         left: 40
     }
 });
-
