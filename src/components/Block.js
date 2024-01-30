@@ -1,9 +1,9 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {StyleSheet} from 'react-native';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring} from 'react-native-reanimated';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 
-const Block = ({ size, blockPositionX }) => {
+const Block = ({blockPositionX}) => {
     const translateX = useSharedValue(0);
 
     React.useEffect(() => {
@@ -18,27 +18,34 @@ const Block = ({ size, blockPositionX }) => {
             translateX.value = event.translationX;
         })
         .onEnd(() => {
-            // Add logic if you want the block to return to a specific position after release
+            // Logic for returning block to a specific position after release, if desired
         });
 
     const animatedStyle = useAnimatedStyle(() => {
+        // Ensure translateX.value is defined and is a number
+        if (typeof translateX.value !== 'number') {
+            console.warn('translateX.value is not a number');
+            return {};
+        }
         return {
-            transform: [{ translateX: translateX.value }],
+            transform: [{translateX: translateX.value}],
         };
     });
 
     return (
         <GestureDetector gesture={panGesture}>
-            <Animated.View style={[styles.block, { width: size, height: size }, animatedStyle]} />
+            <Animated.View style={[styles.block, animatedStyle]}/>
         </GestureDetector>
     );
 };
 
 const styles = StyleSheet.create({
     block: {
+        width: 60,
+        height: 30,
         backgroundColor: 'blue',
         position: 'absolute',
-        bottom: 50, // Adjust as needed
+        bottom: 50,
     },
 });
 

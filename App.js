@@ -10,8 +10,8 @@ const {width, height} = Dimensions.get('window');
 export default function App() {
     const [coins, setCoins] = useState([]);
     const [score, setScore] = useState(0);
-    const [timeRemaining, setTimeRemaining] = useState(90); // 1 minute 30 seconds
-    const blockPositionX = useSharedValue(0); // Shared value for block's X position
+    const [timeRemaining, setTimeRemaining] = useState(90);
+    const blockPositionX = useSharedValue(0);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -19,7 +19,7 @@ export default function App() {
                 ...currentCoins,
                 {id: Math.random(), startPosition: -100, leftPosition: Math.random() * width}
             ]);
-        }, 1000); // Generate new coins every second
+        }, 1000);
 
         return () => clearInterval(interval);
     }, []);
@@ -32,7 +32,6 @@ export default function App() {
 
             return () => clearTimeout(timer);
         } else {
-            // Game Over logic goes here
             alert(`Time's up! Your score: ${score}`);
         }
     }, [timeRemaining]);
@@ -40,33 +39,30 @@ export default function App() {
     useEffect(() => {
         const collisionCheck = setInterval(() => {
             setCoins(currentCoins => currentCoins.filter(coin => {
-                const coinBottomY = coin.startPosition + 30; // Assuming coin size is 30
+                const coinSize = 20;
+                const coinBottomY = coin.startPosition + coinSize;
                 const coinLeftX = coin.leftPosition;
-                const coinRightX = coin.leftPosition + 30;
+                const coinRightX = coin.leftPosition + coinSize;
 
-                const blockWidth = 60; // Assuming block width
-                const blockHeight = 60; // Assuming block height
-                const blockBottomY = height - 50; // Assuming block is 50 pixels from the bottom
+                const blockWidth = 60;
+                const blockHeight = 30;
+                const blockBottomY = height - 50;
                 const blockTopY = blockBottomY - blockHeight;
                 const blockLeftX = blockPositionX.value;
                 const blockRightX = blockPositionX.value + blockWidth;
 
-                // Check horizontal overlap
-                const isHorizontalOverlap = coinLeftX < blockRightX && coinRightX > blockLeftX;
-
-                // Check vertical overlap
-                const isVerticalOverlap = coinBottomY > blockTopY && coinBottomY < blockBottomY;
+                const isHorizontalOverlap = coinRightX > blockLeftX && coinLeftX < blockRightX;
+                const isVerticalOverlap = coinBottomY > blockTopY && coin.startPosition < blockBottomY;
 
                 if (isHorizontalOverlap && isVerticalOverlap) {
-                    setScore(currentScore => currentScore + 1); // Increase score
-                    return false; // Coin is caught, remove it
-                } else if (coinBottomY > height) {
-                    return false; // Coin missed and moved off-screen, remove it
+                    setScore(currentScore => currentScore + 1);
+                    return false;
+                } else if (coin.startPosition > height) {
+                    return false;
                 }
-
-                return true; // Coin not caught or missed yet, keep it
+                return true;
             }));
-        }, 50);
+        }, 25);
 
         return () => clearInterval(collisionCheck);
     }, []);
