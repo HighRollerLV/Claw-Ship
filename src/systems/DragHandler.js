@@ -11,9 +11,7 @@ const DragHandler = (entities, {touches}) => {
     if (move) {
         let block = entities.block;
         if (block.isDragging) {
-            // Update only the x coordinate
             block.x = move.event.pageX - block.width / 2;
-            // Keep the y coordinate fixed
         }
     }
 
