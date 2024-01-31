@@ -12,13 +12,33 @@ const {width, height} = Dimensions.get('window');
 export default function App() {
     const [score, setScore] = useState(0);
     const numberOfCoins = 20;
-    const coinWidth = 30;
-    const coinHeight = 30;
+    const coinWidth = 20;
+    const coinHeight = 20;
+    const minimumDistance = 40; // Minimum distance between coins, adjust as needed
+
+    let previousPositions = []; // To keep track of previous coin positions
+
+    const isTooClose = (x, y, previousPositions, minDistance) => {
+        return previousPositions.some(pos =>
+            Math.sqrt(Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2)) < minDistance
+        );
+    };
 
     const generateRandomPosition = (index) => {
+        let x, y, randomYOffset;
+
+        do {
+            randomYOffset = Math.random() * 500; // Adjust the range as needed
+            x = Math.random() * width;
+            y = -(randomYOffset + index * 50);
+
+        } while (isTooClose(x, y, previousPositions, minimumDistance));
+
+        previousPositions.push({ x, y }); // Keep track of the new position
+
         return {
-            x: Math.random() * width,
-            y: -(Math.random() * 500 + index * 50),
+            x: x,
+            y: y,
             width: coinWidth,
             height: coinHeight,
             renderer: Coin

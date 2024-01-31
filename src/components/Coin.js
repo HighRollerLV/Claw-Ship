@@ -12,7 +12,7 @@ const styles = StyleSheet.create({
     coin: {
         position: 'absolute',
         backgroundColor: 'gold',
-        borderRadius: 10
+        borderRadius: 20
     }
 });
 
