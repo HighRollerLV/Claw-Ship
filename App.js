@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { Text, StyleSheet, Dimensions, View, TouchableOpacity } from 'react-native';
 import { GameEngine } from 'react-native-game-engine';
 import Coin from './src/components/Coin';
@@ -8,7 +8,7 @@ import CollisionDetection from './src/systems/CollisionDetection';
 import DragHandler from './src/systems/DragHandler';
 
 const { width, height } = Dimensions.get('window');
-const numberOfCoins = 15;
+const defaultNumberOfCoins = 10;
 const coinWidth = 20;
 const coinHeight = 20;
 const minimumDistance = 60;
@@ -17,9 +17,24 @@ export default function App() {
     const [score, setScore] = useState(0);
     const [lives, setLives] = useState(3);
     const [gameStarted, setGameStarted] = useState(false);
-    // State "entities" not directly used, hence omitted in the destructuring
-    const [, setEntities] = useState({});
-    const [resetSignal, setResetSignal] = useState(false); // Added for reset signaling
+    const [numberOfCoins, setNumberOfCoins] = useState(defaultNumberOfCoins); // Correctly declared for managing coin count
+    const [entities, setEntities] = useState({});
+    const [resetSignal, setResetSignal] = useState(false);
+
+    useEffect(() => {
+        if (gameStarted) {
+            const interval = setInterval(() => {
+                setNumberOfCoins(currentCoins => currentCoins + 5); // Correctly increments the number of coins over time
+            }, 30000); // Increase coins every 30 seconds
+            return () => clearInterval(interval);
+        }
+    }, [gameStarted]);
+
+    useEffect(() => {
+        if (gameStarted) {
+            setEntities(generateInitialEntities(numberOfCoins)); // Regenerates entities when numberOfCoins changes
+        }
+    }, [numberOfCoins, gameStarted]);
 
     function isTooClose(x, y, previousPositions) {
         return previousPositions.some(pos =>
@@ -31,12 +46,13 @@ export default function App() {
         let x, y;
         do {
             x = Math.random() * width;
-            y = -(Math.random() * 500); // Ensure coins start off-screen
+            y = -Math.random() * 500; // Ensure coins start off-screen
         } while (isTooClose(x, y, previousPositions));
         return { x, y };
     }
 
-    function generateInitialEntities() {
+
+    function generateInitialEntities(numCoins) {
         let entities = {
             block: {
                 x: width / 2 - 30,
@@ -47,7 +63,7 @@ export default function App() {
             },
         };
         let previousPositions = [];
-        for (let i = 0; i < numberOfCoins; i++) {
+        for (let i = 0; i < numCoins; i++) {
             const { x, y } = generateRandomPosition(previousPositions);
             entities[`coin_${i}`] = {
                 x,
@@ -63,8 +79,8 @@ export default function App() {
 
     const startGame = () => {
         setGameStarted(true);
-        setEntities(generateInitialEntities()); // Initialize entities when the game starts
-        setResetSignal(false); // Ensure resetSignal is false when starting
+        setNumberOfCoins(defaultNumberOfCoins); // Reset number of coins when game starts
+        setEntities(generateInitialEntities(defaultNumberOfCoins)); // Re-initialize entities with default number of coins
     };
 
     const resetGame = () => {
@@ -72,8 +88,10 @@ export default function App() {
         setLives(3);
         setGameStarted(false);
         setResetSignal(true); // Trigger a reset
-        setTimeout(() => setResetSignal(false), 100); // Then clear the signal shortly after
-    };
+        setTimeout(() => {
+            setResetSignal(false);
+            setEntities(generateInitialEntities(defaultNumberOfCoins)); // Reset entities upon game reset
+        }, 100);    };
 
     // Conditional rendering based on game state
     if (!gameStarted) {
@@ -103,7 +121,7 @@ export default function App() {
         <GameEngine
             style={styles.gameContainer}
             systems={[MoveCoin(width, height, setLives, resetSignal), CollisionDetection(setScore), DragHandler]}
-            entities={generateInitialEntities()}>
+            entities={entities}>
             <Text style={styles.scoreText}>Score: {score}</Text>
             <Text style={styles.livesText}>Lives: {lives}</Text>
         </GameEngine>
