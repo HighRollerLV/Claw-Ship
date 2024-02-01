@@ -8,64 +8,83 @@ import CollisionDetection from './src/systems/CollisionDetection';
 import DragHandler from './src/systems/DragHandler';
 
 const { width, height } = Dimensions.get('window');
+const numberOfCoins = 15;
+const coinWidth = 20;
+const coinHeight = 20;
+const minimumDistance = 60;
 
 export default function App() {
     const [score, setScore] = useState(0);
-    const numberOfCoins = 20;
-    const coinWidth = 20;
-    const coinHeight = 20;
-    const minimumDistance = 40;
     const [lives, setLives] = useState(3);
-    const [resetSignal, setResetSignal] = useState(false);
+    const [gameStarted, setGameStarted] = useState(false);
+    // State "entities" not directly used, hence omitted in the destructuring
+    const [, setEntities] = useState({});
+    const [resetSignal, setResetSignal] = useState(false); // Added for reset signaling
 
-    let previousPositions = [];
-
-    const isTooClose = (x, y, previousPositions, minDistance) => {
+    function isTooClose(x, y, previousPositions) {
         return previousPositions.some(pos =>
-            Math.sqrt(Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2)) < minDistance
+            Math.sqrt(Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2)) < minimumDistance
         );
-    };
+    }
 
-    const generateRandomPosition = (index) => {
-        let x, y, randomYOffset;
-
+    function generateRandomPosition(previousPositions) {
+        let x, y;
         do {
-            randomYOffset = Math.random() * 500;
             x = Math.random() * width;
-            y = -(randomYOffset + index * 50);
+            y = -(Math.random() * 500); // Ensure coins start off-screen
+        } while (isTooClose(x, y, previousPositions));
+        return { x, y };
+    }
 
-        } while (isTooClose(x, y, previousPositions, minimumDistance));
-
-        previousPositions.push({ x, y });
-
-        return {
-            x: x,
-            y: y,
-            width: coinWidth,
-            height: coinHeight,
-            renderer: Coin
-        };
-    };
-
-    const generateEntities = () => {
+    function generateInitialEntities() {
         let entities = {
-            block: { x: 0, y: height - 80, width: 60, height: 30, renderer: Block }
+            block: {
+                x: width / 2 - 30,
+                y: height - 80,
+                width: 60,
+                height: 30,
+                renderer: <Block />,
+            },
         };
-
+        let previousPositions = [];
         for (let i = 0; i < numberOfCoins; i++) {
-            entities[`coin_${i}`] = generateRandomPosition(i);
+            const { x, y } = generateRandomPosition(previousPositions);
+            entities[`coin_${i}`] = {
+                x,
+                y,
+                width: coinWidth,
+                height: coinHeight,
+                renderer: <Coin />,
+            };
+            previousPositions.push({ x, y });
         }
-
         return entities;
+    }
+
+    const startGame = () => {
+        setGameStarted(true);
+        setEntities(generateInitialEntities()); // Initialize entities when the game starts
+        setResetSignal(false); // Ensure resetSignal is false when starting
     };
 
     const resetGame = () => {
         setScore(0);
         setLives(3);
-        setResetSignal(true); // Set the reset signal
-        setTimeout(() => setResetSignal(false), 0); // Clear the signal
-        // Reset any other state or game properties if necessary
+        setGameStarted(false);
+        setResetSignal(true); // Trigger a reset
+        setTimeout(() => setResetSignal(false), 100); // Then clear the signal shortly after
     };
+
+    // Conditional rendering based on game state
+    if (!gameStarted) {
+        return (
+            <View style={styles.container}>
+                <TouchableOpacity onPress={startGame} style={styles.startButton}>
+                    <Text style={styles.startButtonText}>Start Game</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     if (lives <= 0) {
         return (
@@ -79,10 +98,12 @@ export default function App() {
         );
     }
 
+    // Main game rendering
     return (
         <GameEngine
+            style={styles.gameContainer}
             systems={[MoveCoin(width, height, setLives, resetSignal), CollisionDetection(setScore), DragHandler]}
-            entities={generateEntities()}>
+            entities={generateInitialEntities()}>
             <Text style={styles.scoreText}>Score: {score}</Text>
             <Text style={styles.livesText}>Lives: {lives}</Text>
         </GameEngine>
@@ -90,43 +111,61 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-    scoreText: {
-        position: 'absolute',
-        top: 40,
-        left: 40
-    },
-    livesText: {
-        position: 'absolute',
-        top: 40,
-        right: 40, // Positioned on the top-right
-        color: 'black',
-    },
-    gameOverText: {
-        fontSize: 50,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    finalScoreText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginTop: 10,
-    },
     container: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#fff',
+    },
+    gameContainer: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    scoreText: {
+        position: 'absolute',
+        top: 40,
+        left: 40,
+        color: 'black',
+        fontSize: 24,
+    },
+    livesText: {
+        position: 'absolute',
+        top: 40,
+        right: 40,
+        color: 'black',
+        fontSize: 24,
+    },
+    gameOverText: {
+        fontSize: 48,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    finalScoreText: {
+        fontSize: 24,
+        textAlign: 'center',
+        marginTop: 20,
+    },
+    startButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        backgroundColor: 'green',
+        borderRadius: 5,
+    },
+    startButtonText: {
+        color: 'white',
+        fontSize: 20,
+        fontWeight: 'bold',
     },
     restartButton: {
         marginTop: 20,
         backgroundColor: '#007bff',
         paddingHorizontal: 20,
         paddingVertical: 10,
-        borderRadius: 5
+        borderRadius: 5,
     },
     restartButtonText: {
         color: 'white',
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
     },
 });
