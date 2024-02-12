@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Claw-Ship",
-    "slug": "clawship",
+    "slug": "clawshipp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,20 +15,22 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ralfsd.clawship"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ralfsd.clawship"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "baf65395-9f25-499a-85d8-a26b1de58ab7"
+        "projectId": "c4f33df4-7d42-480e-883f-81fe027a9422"
       }
     },
     "owner": "ralfsd"

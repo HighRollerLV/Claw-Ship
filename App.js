@@ -1,14 +1,14 @@
 import React, {useEffect, useState} from 'react';
-import { Text, StyleSheet, Dimensions, View, TouchableOpacity } from 'react-native';
-import { GameEngine } from 'react-native-game-engine';
+import {Text, StyleSheet, Dimensions, View, TouchableOpacity} from 'react-native';
+import {GameEngine} from 'react-native-game-engine';
 import Coin from './src/components/Coin';
 import Block from './src/components/Block';
 import MoveCoin from './src/systems/MoveCoin';
 import CollisionDetection from './src/systems/CollisionDetection';
 import DragHandler from './src/systems/DragHandler';
 
-const { width, height } = Dimensions.get('window');
-const defaultNumberOfCoins = 10;
+const {width, height} = Dimensions.get('window');
+const defaultNumberOfCoins = 5;
 const coinWidth = 20;
 const coinHeight = 20;
 const minimumDistance = 60;
@@ -24,8 +24,8 @@ export default function App() {
     useEffect(() => {
         if (gameStarted) {
             const interval = setInterval(() => {
-                setNumberOfCoins(currentCoins => currentCoins + 5); // Correctly increments the number of coins over time
-            }, 30000); // Increase coins every 30 seconds
+                setNumberOfCoins(currentCoins => Math.min(currentCoins + 1, 20)); // Increase coins slowly and cap it
+            }, 45000); // Increase coins less frequently
             return () => clearInterval(interval);
         }
     }, [gameStarted]);
@@ -48,7 +48,7 @@ export default function App() {
             x = Math.random() * width;
             y = -Math.random() * 500; // Ensure coins start off-screen
         } while (isTooClose(x, y, previousPositions));
-        return { x, y };
+        return {x, y};
     }
 
 
@@ -59,20 +59,20 @@ export default function App() {
                 y: height - 80,
                 width: 60,
                 height: 30,
-                renderer: <Block />,
+                renderer: <Block/>,
             },
         };
         let previousPositions = [];
         for (let i = 0; i < numCoins; i++) {
-            const { x, y } = generateRandomPosition(previousPositions);
+            const {x, y} = generateRandomPosition(previousPositions);
             entities[`coin_${i}`] = {
                 x,
                 y,
                 width: coinWidth,
                 height: coinHeight,
-                renderer: <Coin />,
+                renderer: <Coin/>,
             };
-            previousPositions.push({ x, y });
+            previousPositions.push({x, y});
         }
         return entities;
     }
@@ -91,7 +91,8 @@ export default function App() {
         setTimeout(() => {
             setResetSignal(false);
             setEntities(generateInitialEntities(defaultNumberOfCoins)); // Reset entities upon game reset
-        }, 100);    };
+        }, 100);
+    };
 
     // Conditional rendering based on game state
     if (!gameStarted) {
