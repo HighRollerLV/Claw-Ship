@@ -7,11 +7,10 @@ import MoveCoin from './src/systems/MoveCoin';
 import CollisionDetection from './src/systems/CollisionDetection';
 import DragHandler from './src/systems/DragHandler';
 
-const screenWidth = Dimensions.get('window').width;
 const {width, height} = Dimensions.get('window');
-const defaultNumberOfCoins = 5;
-const coinWidth = 20;
-const coinHeight = 20;
+const defaultNumberOfCoins = 6;
+const coinWidth = 60;
+const coinHeight = 60;
 const minimumDistance = 60;
 
 export default function App() {
@@ -34,7 +33,7 @@ export default function App() {
     function generateRandomPosition(previousPositions) {
         let x, y;
         do {
-            x = Math.random() * width;
+            x = Math.random() * (width - coinWidth); // Adjust to ensure coins start fully on-screen
             y = -Math.random() * 500; // Ensure coins start off-screen
         } while (isTooClose(x, y, previousPositions));
         return {x, y};
@@ -51,8 +50,8 @@ export default function App() {
             block: {
                 x: width / 2 - 30,
                 y: height - 80,
-                width: 60,
-                height: 30,
+                width: 70,
+                height: 60,
                 renderer: <Block/>,
             },
         };
@@ -117,9 +116,9 @@ export default function App() {
         <GameEngine
             style={styles.gameContainer}
             systems={[
-                MoveCoin(width, height, setLives, resetSignal),
-                CollisionDetection(setScore, screenWidth),
-                DragHandler
+                MoveCoin(width, height, setLives, resetSignal, coinWidth), // Now includes coinWidth
+                CollisionDetection(setScore, width),
+                DragHandler,
             ]}
             entities={entities}>
             <Text style={styles.scoreText}>Score: {score}</Text>

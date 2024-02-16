@@ -1,17 +1,20 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Image, StyleSheet } from 'react-native';
 
 const Block = ({ x, y, width, height }) => {
     return (
-        <View style={[styles.block, { left: x, top: y, width, height }]} />
+        <Image
+            source={require('../../img/clawMachine.png')} // Adjust the path to where your image is located
+            style={[styles.image, { left: x, top: y, width: width, height: height }]}
+            resizeMode="cover" // Adjust this as needed
+        />
     );
 };
 
 const styles = StyleSheet.create({
-    block: {
-        position: 'absolute',
-        backgroundColor: 'blue'
-    }
+    image: {
+        position: 'absolute', // Keeps the absolute positioning for layout
+    },
 });
 
 export default Block;
