@@ -7,6 +7,7 @@ import MoveCoin from './src/systems/MoveCoin';
 import CollisionDetection from './src/systems/CollisionDetection';
 import DragHandler from './src/systems/DragHandler';
 
+const screenWidth = Dimensions.get('window').width;
 const {width, height} = Dimensions.get('window');
 const defaultNumberOfCoins = 5;
 const coinWidth = 20;
@@ -17,24 +18,12 @@ export default function App() {
     const [score, setScore] = useState(0);
     const [lives, setLives] = useState(3);
     const [gameStarted, setGameStarted] = useState(false);
-    const [numberOfCoins, setNumberOfCoins] = useState(defaultNumberOfCoins); // Correctly declared for managing coin count
     const [entities, setEntities] = useState({});
     const [resetSignal, setResetSignal] = useState(false);
 
     useEffect(() => {
-        if (gameStarted) {
-            const interval = setInterval(() => {
-                setNumberOfCoins(currentCoins => Math.min(currentCoins + 1, 20)); // Increase coins slowly and cap it
-            }, 45000); // Increase coins less frequently
-            return () => clearInterval(interval);
-        }
-    }, [gameStarted]);
-
-    useEffect(() => {
-        if (gameStarted) {
-            setEntities(generateInitialEntities(numberOfCoins)); // Regenerates entities when numberOfCoins changes
-        }
-    }, [numberOfCoins, gameStarted]);
+        setEntities(generateInitialEntities(calculateActiveCoins(score))); // Adjust entities based on score
+    }, [score, gameStarted]);
 
     function isTooClose(x, y, previousPositions) {
         return previousPositions.some(pos =>
@@ -49,6 +38,11 @@ export default function App() {
             y = -Math.random() * 500; // Ensure coins start off-screen
         } while (isTooClose(x, y, previousPositions));
         return {x, y};
+    }
+
+    function calculateActiveCoins(score) {
+        // Start with 5 coins, increase by 5 for every 20 points scored
+        return defaultNumberOfCoins + Math.floor(score / 20) * 5;
     }
 
 
@@ -79,8 +73,9 @@ export default function App() {
 
     const startGame = () => {
         setGameStarted(true);
-        setNumberOfCoins(defaultNumberOfCoins); // Reset number of coins when game starts
-        setEntities(generateInitialEntities(defaultNumberOfCoins)); // Re-initialize entities with default number of coins
+        setScore(0); // Reset score when game starts
+        setLives(3); // Reset lives
+        setEntities(generateInitialEntities(calculateActiveCoins(score))); // Initialize entities with dynamic number of coins based on score
     };
 
     const resetGame = () => {
@@ -90,7 +85,7 @@ export default function App() {
         setResetSignal(true); // Trigger a reset
         setTimeout(() => {
             setResetSignal(false);
-            setEntities(generateInitialEntities(defaultNumberOfCoins)); // Reset entities upon game reset
+            setEntities(generateInitialEntities(calculateActiveCoins(score))); // Reset entities upon game reset with dynamic number of coins
         }, 100);
     };
 
@@ -121,7 +116,11 @@ export default function App() {
     return (
         <GameEngine
             style={styles.gameContainer}
-            systems={[MoveCoin(width, height, setLives, resetSignal), CollisionDetection(setScore), DragHandler]}
+            systems={[
+                MoveCoin(width, height, setLives, resetSignal),
+                CollisionDetection(setScore, screenWidth),
+                DragHandler
+            ]}
             entities={entities}>
             <Text style={styles.scoreText}>Score: {score}</Text>
             <Text style={styles.livesText}>Lives: {lives}</Text>
