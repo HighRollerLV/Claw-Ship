@@ -9,9 +9,9 @@ import DragHandler from './src/systems/DragHandler';
 
 const {width, height} = Dimensions.get('window');
 const defaultNumberOfCoins = 6;
-const coinWidth = 60;
-const coinHeight = 60;
-const minimumDistance = 60;
+const coinWidth = 35;
+const coinHeight = 35;
+const minimumDistance = 70;
 
 const styles = StyleSheet.create({
     container: {
@@ -127,10 +127,10 @@ export default function App() {
     const generateInitialEntities = useCallback((numCoins) => {
         let entities = {
             block: {
-                x: width / 2 - 30,
-                y: height - 80,
-                width: 70,
-                height: 60,
+                x: width / 2 - 100,
+                y: height - 100,
+                width: 100,
+                height: 100,
                 renderer: <Block/>,
             },
         };
@@ -172,7 +172,7 @@ export default function App() {
         return (
             <View style={styles.container}>
                 <View style={styles.overlayContainer}>
-                    <Image source={require('./img/tolmetsLogo.png')} style={styles.overlayImage}/>
+                    <Image source={require('./img/tolmetsLogo2.png')} style={styles.overlayImage}/>
                     <TouchableOpacity onPress={startGame} style={styles.startButton}>
                         <Text style={styles.startButtonText}>Start Game</Text>
                     </TouchableOpacity>
@@ -186,7 +186,7 @@ export default function App() {
         return (
             <View style={styles.container}>
                 <View style={styles.overlayContainer}>
-                    <Image source={require('./img/tolmetsLogo.png')} style={styles.overlayImage}/>
+                    <Image source={require('./img/tolmetsLogo2.png')} style={styles.overlayImage}/>
                     <Text style={styles.gameOverText}>Game Over</Text>
                     <Text style={styles.finalScoreText}>Final Score: {score}</Text>
                     <TouchableOpacity onPress={resetGame} style={styles.restartButton}>
@@ -199,16 +199,32 @@ export default function App() {
 
     // Main game rendering
     return (
-        <GameEngine
-            style={styles.gameContainer}
-            systems={[
-                MoveCoin(width, height, setLives, resetSignal, coinWidth), // Now includes coinWidth
-                CollisionDetection(setScore, width),
-                DragHandler,
-            ]}
-            entities={entities}>
-            <Text style={styles.scoreText}>Score: {score}</Text>
-            <Text style={styles.livesText}>Lives: {lives}</Text>
-        </GameEngine>
+        <View style={styles.gameContainer}>
+            {/* Position the logo in the center of the screen without affecting gameplay */}
+            <Image
+                source={require('./img/tolmetsLogo2.png')}
+                style={{
+                    position: 'absolute',
+                    width: 260, // Adjust based on the logo size
+                    height: 260, // Adjust based on the logo size
+                    resizeMode: 'contain', // Ensure the logo is scaled correctly
+                    top: height / 2 - 130, // Center vertically, adjust based on the logo size
+                    left: width / 2 - 130, // Center horizontally, adjust based on the logo size
+                    opacity: 0.4, // Optionally set opacity to ensure game elements are visible
+                }}
+            />
+
+            {/* GameEngine and UI elements remain unchanged */}
+            <GameEngine
+                systems={[
+                    MoveCoin(width, height, setLives, resetSignal, coinWidth),
+                    CollisionDetection(setScore, width),
+                    DragHandler,
+                ]}
+                entities={entities}>
+                <Text style={styles.scoreText}>Score: {score}</Text>
+                <Text style={styles.livesText}>Lives: {lives}</Text>
+            </GameEngine>
+        </View>
     );
 }

@@ -4,7 +4,7 @@ import { Image, StyleSheet } from 'react-native';
 const Coin = React.memo(({ x, y, width, height }) => {
     return (
         <Image
-            source={require('../../img/voyagerCar1.png')}
+            source={require('../../img/voyager_edit2.png')}
             style={[styles.image, { left: x, top: y, width: width, height: height }]}
             resizeMode="cover"
         />
