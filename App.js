@@ -1,11 +1,12 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {Text, Image, StyleSheet, Dimensions, View, TouchableOpacity} from 'react-native';
+import {ActivityIndicator, Text, Image, StyleSheet, Dimensions, View, TouchableOpacity} from 'react-native';
 import {GameEngine} from 'react-native-game-engine';
 import Coin from './src/components/Coin';
 import Block from './src/components/Block';
 import MoveCoin from './src/systems/MoveCoin';
 import CollisionDetection from './src/systems/CollisionDetection';
 import DragHandler from './src/systems/DragHandler';
+import { Audio } from 'expo-av';
 
 const {width, height} = Dimensions.get('window');
 const defaultNumberOfCoins = 6;
@@ -62,19 +63,19 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     overlayContainer: {
-        flex: 1, // Take full height of the parent container
-        justifyContent: 'center', // Align children (the button) vertically in the center
-        alignItems: 'center', // Align children (the button) horizontally in the center
-        position: 'relative', // Allows absolute positioning of the logo relative to this container
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
     },
 
     overlayImage: {
         position: 'absolute',
-        width: 260, // Adjust the width as needed
-        height: 260, // Adjust the height as needed
-        resizeMode: 'cover', // Keeps the aspect ratio, adjust as needed
-        top: 0, // Position at the top of the overlayContainer
-        transform: [{translateY: 100}], // Move up by half the height of the image or adjust as needed
+        width: 260,
+        height: 260,
+        resizeMode: 'cover',
+        top: 0,
+        transform: [{translateY: 100}],
     },
     restartButton: {
         marginTop: 20,
@@ -98,6 +99,29 @@ export default function App() {
     const [gameStarted, setGameStarted] = useState(false);
     const [entities, setEntities] = useState({});
     const [resetSignal, setResetSignal] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [backgroundMusic, setBackgroundMusic] = useState(null); // State to hold background music object
+
+    const playBackgroundMusic = async () => {
+        const { sound } = await Audio.Sound.createAsync(
+            require('./sound/gamingMusic.mp3'), // Replace with your own music file path
+            { shouldPlay: true, isLooping: true }
+        );
+        setBackgroundMusic(sound); // Save the sound object for later use
+    };
+
+    useEffect(() => {
+        if (gameStarted) {
+            (async () => {
+                await playBackgroundMusic();
+            })();
+        }
+
+        return () => {
+            backgroundMusic?.unloadAsync();
+        };
+    }, [gameStarted]);
+
 
     useEffect(() => {
         setEntities(generateInitialEntities(calculateActiveCoins(score))); // Adjust entities based on score
@@ -128,9 +152,9 @@ export default function App() {
         let entities = {
             block: {
                 x: width / 2 - 100,
-                y: height - 100,
+                y: height - 120,
                 width: 100,
-                height: 100,
+                height: 120,
                 renderer: <Block/>,
             },
         };
@@ -149,11 +173,24 @@ export default function App() {
         return entities;
     }, []);
 
+    useEffect(() => {
+        if (gameStarted && isLoading) {
+            // Simulate or perform async entity loading here
+            setTimeout(() => {
+                const initialEntities = generateInitialEntities(calculateActiveCoins(0));
+                setEntities(initialEntities); // Prepare entities
+                setIsLoading(false); // End loading once entities are ready
+            }, 5000); // Simulate async loading
+        }
+    }, [gameStarted, isLoading]);
+
     const startGame = useCallback(() => {
         setGameStarted(true);
-        setScore(0); // Reset score when game starts
-        setLives(3); // Reset lives
-        setEntities(generateInitialEntities(calculateActiveCoins(score))); // Initialize entities with dynamic number of coins based on score
+        setIsLoading(true); // Trigger loading state
+        // No need to set entities here; useEffect will handle it based on dependencies
+        setScore(0);
+        setLives(3);
+        // Removal of direct entity setting allows useEffect to manage entity readiness
     }, []);
 
     const resetGame = useCallback(() => {
@@ -166,21 +203,6 @@ export default function App() {
             setEntities(generateInitialEntities(calculateActiveCoins(score))); // Reset entities upon game reset with dynamic number of coins
         }, 100);
     }, []);
-
-    // Conditional rendering based on game state
-    if (!gameStarted) {
-        return (
-            <View style={styles.container}>
-                <View style={styles.overlayContainer}>
-                    <Image source={require('./img/tolmetsLogo2.png')} style={styles.overlayImage}/>
-                    <TouchableOpacity onPress={startGame} style={styles.startButton}>
-                        <Text style={styles.startButtonText}>Start Game</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    }
-
 
     if (lives <= 0) {
         return (
@@ -196,35 +218,55 @@ export default function App() {
             </View>
         );
     }
+    // Conditional rendering based on game state
+    if (isLoading) {
+        // Show loading indicator while loading
+        return (
+            <View style={styles.container}>
+                <ActivityIndicator size="large" color="#0000ff"/>
+            </View>
+        );
+    } else if (!gameStarted) {
+        // Show start game view
+        return (
+            <View style={styles.container}>
+                <View style={styles.overlayContainer}>
+                    <Image source={require('./img/tolmetsLogo2.png')} style={styles.overlayImage}/>
+                    <TouchableOpacity onPress={startGame} style={styles.startButton}>
+                        <Text style={styles.startButtonText}>Start Game</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    } else {
+        return (
+            <View style={styles.gameContainer}>
+                {/* Position the logo in the center of the screen without affecting gameplay */}
+                <Image
+                    source={require('./img/tolmetsLogo2.png')}
+                    style={{
+                        position: 'absolute',
+                        width: 260, // Adjust based on the logo size
+                        height: 260, // Adjust based on the logo size
+                        resizeMode: 'contain', // Ensure the logo is scaled correctly
+                        top: height / 2 - 130, // Center vertically, adjust based on the logo size
+                        left: width / 2 - 130, // Center horizontally, adjust based on the logo size
+                        opacity: 0.4, // Optionally set opacity to ensure game elements are visible
+                    }}
+                />
 
-    // Main game rendering
-    return (
-        <View style={styles.gameContainer}>
-            {/* Position the logo in the center of the screen without affecting gameplay */}
-            <Image
-                source={require('./img/tolmetsLogo2.png')}
-                style={{
-                    position: 'absolute',
-                    width: 260, // Adjust based on the logo size
-                    height: 260, // Adjust based on the logo size
-                    resizeMode: 'contain', // Ensure the logo is scaled correctly
-                    top: height / 2 - 130, // Center vertically, adjust based on the logo size
-                    left: width / 2 - 130, // Center horizontally, adjust based on the logo size
-                    opacity: 0.4, // Optionally set opacity to ensure game elements are visible
-                }}
-            />
-
-            {/* GameEngine and UI elements remain unchanged */}
-            <GameEngine
-                systems={[
-                    MoveCoin(width, height, setLives, resetSignal, coinWidth),
-                    CollisionDetection(setScore, width),
-                    DragHandler,
-                ]}
-                entities={entities}>
-                <Text style={styles.scoreText}>Score: {score}</Text>
-                <Text style={styles.livesText}>Lives: {lives}</Text>
-            </GameEngine>
-        </View>
-    );
+                {/* GameEngine and UI elements remain unchanged */}
+                <GameEngine
+                    systems={[
+                        MoveCoin(width, height, setLives, resetSignal, coinWidth),
+                        CollisionDetection(setScore, width),
+                        DragHandler,
+                    ]}
+                    entities={entities}>
+                    <Text style={styles.scoreText}>Score: {score}</Text>
+                    <Text style={styles.livesText}>Lives: {lives}</Text>
+                </GameEngine>
+            </View>
+        );
+    }
 }
