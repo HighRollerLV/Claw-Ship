@@ -101,6 +101,38 @@ export default function App() {
     const [resetSignal, setResetSignal] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [backgroundMusic, setBackgroundMusic] = useState(null); // State to hold background music object
+    const [pingSound, setPingSound] = useState(null);
+
+    useEffect(() => {
+        const loadPingSound = async () => {
+            return Audio.Sound.createAsync(
+                require('./sound/pingTolmet.mp3') // Ensure you have a ping sound file
+            ).then(({ sound }) => {
+                setPingSound(sound);
+            });
+        };
+
+        loadPingSound().catch(error => {
+            console.error("Failed to load ping sound", error);
+        });
+
+        return () => {
+            pingSound?.unloadAsync(); // Clean up
+        };
+    }, []);
+
+// Function to play the ping sound
+    const playPingSound = async () => {
+        const { sound } = await Audio.Sound.createAsync(
+            require('./sound/pingTolmet.mp3') // Ensure you have a ping sound file
+        );
+        await sound.playAsync();
+        sound.setOnPlaybackStatusUpdate(async (status) => {
+            if (status.didJustFinish) {
+                await sound.unloadAsync(); // Unload sound from memory after playback is done
+            }
+        });
+    };
 
     const playBackgroundMusic = async () => {
         const { sound } = await Audio.Sound.createAsync(
@@ -259,7 +291,7 @@ export default function App() {
                 <GameEngine
                     systems={[
                         MoveCoin(width, height, setLives, resetSignal, coinWidth),
-                        CollisionDetection(setScore, width),
+                        CollisionDetection(setScore, playPingSound, width), // Now passing playPingSound
                         DragHandler,
                     ]}
                     entities={entities}>

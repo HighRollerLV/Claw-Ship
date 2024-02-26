@@ -1,4 +1,4 @@
-const CollisionDetection = (setScore, screenWidth) => (entities) => {
+const CollisionDetection = (setScore, playPingSound, screenWidth) => (entities) => {
     Object.keys(entities).forEach(key => {
         if (key.startsWith("coin")) {
             const coin = entities[key];
@@ -8,6 +8,7 @@ const CollisionDetection = (setScore, screenWidth) => (entities) => {
                 coin.y < block.y + block.height &&
                 coin.y + coin.height > block.y) {
                 setScore(prevScore => prevScore + 1); // Increment score
+                playPingSound(); // Play ping sound on collision
 
                 // Ensure the coin is fully within the screen when repositioned
                 coin.y = -Math.random() * 100; // Ensure it starts off-screen
