@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, Text, Image, StyleSheet, Dimensions, View, TouchableOpacity} from 'react-native';
+import {ActivityIndicator, Text, Image, Dimensions, View, TouchableOpacity} from 'react-native';
 import {GameEngine} from 'react-native-game-engine';
 import Coin from './src/components/Coin';
 import Block from './src/components/Block';
@@ -7,91 +7,13 @@ import MoveCoin from './src/systems/MoveCoin';
 import CollisionDetection from './src/systems/CollisionDetection';
 import DragHandler from './src/systems/DragHandler';
 import { Audio } from 'expo-av';
+import styles from './AppStyles';
 
 const {width, height} = Dimensions.get('window');
 const defaultNumberOfCoins = 6;
 const coinWidth = 35;
 const coinHeight = 35;
 const minimumDistance = 70;
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-    },
-    gameContainer: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    scoreText: {
-        position: 'absolute',
-        top: 40,
-        left: 40,
-        color: 'black',
-        fontSize: 24,
-    },
-    livesText: {
-        position: 'absolute',
-        top: 40,
-        right: 40,
-        color: 'black',
-        fontSize: 24,
-    },
-    gameOverText: {
-        fontSize: 48,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    finalScoreText: {
-        fontSize: 24,
-        textAlign: 'center',
-        marginTop: 20,
-    },
-    startButton: {
-        paddingHorizontal: 30,
-        paddingVertical: 20,
-        backgroundColor: '#F5842A',
-        borderRadius: 5,
-        borderWidth: 2,
-        borderColor: 'black',
-    },
-    startButtonText: {
-        color: 'white',
-        fontSize: 25,
-        fontWeight: 'bold',
-    },
-    overlayContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'relative',
-    },
-
-    overlayImage: {
-        position: 'absolute',
-        width: 260,
-        height: 260,
-        resizeMode: 'cover',
-        top: 0,
-        transform: [{translateY: 100}],
-    },
-    restartButton: {
-        marginTop: 20,
-        backgroundColor: '#F5842A',
-        paddingHorizontal: 30,
-        paddingVertical: 20,
-        borderRadius: 5,
-        borderWidth: 2,
-        borderColor: 'black',
-    },
-    restartButtonText: {
-        color: 'white',
-        fontSize: 25,
-        fontWeight: 'bold',
-    },
-});
 
 export default function App() {
     const [score, setScore] = useState(0);
