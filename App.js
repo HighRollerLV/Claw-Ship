@@ -1,109 +1,126 @@
-import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, Text, Image, Dimensions, View, TouchableOpacity} from 'react-native';
-import {GameEngine} from 'react-native-game-engine';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Text, Image, Dimensions, View, TouchableOpacity } from 'react-native';
+import { GameEngine } from 'react-native-game-engine';
 import Coin from './src/components/Coin';
 import Block from './src/components/Block';
 import MoveCoin from './src/systems/MoveCoin';
 import CollisionDetection from './src/systems/CollisionDetection';
 import DragHandler from './src/systems/DragHandler';
 import { Audio } from 'expo-av';
-import styles from './AppStyles';
+import styles from './AppStyles'; // Custom styles
 
-const {width, height} = Dimensions.get('window');
+// Get device's width and height for layout calculations
+const { width, height } = Dimensions.get('window');
+// Default settings
 const defaultNumberOfCoins = 6;
 const coinWidth = 35;
 const coinHeight = 35;
-const minimumDistance = 70;
+const minimumDistance = 70; // Minimum distance for collision to be considered
 
 export default function App() {
-    const [score, setScore] = useState(0);
-    const [lives, setLives] = useState(3);
-    const [gameStarted, setGameStarted] = useState(false);
-    const [entities, setEntities] = useState({});
-    const [resetSignal, setResetSignal] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [score, setScore] = useState(0); // State for the player's score
+    const [lives, setLives] = useState(3); // State for the player's lives
+    const [gameStarted, setGameStarted] = useState(false); // State to track if the game has started
+    const [entities, setEntities] = useState({}); // State to store game entities
+    const [resetSignal, setResetSignal] = useState(false); // State to handle game reset
+    const [isLoading, setIsLoading] = useState(false); // State to track if the game is loading
     const [backgroundMusic, setBackgroundMusic] = useState(null); // State to hold background music object
-    const [pingSound, setPingSound] = useState(null);
+    const [pingSound, setPingSound] = useState(null); // State to hold the sound played on scoring
 
+// Using Reacts useEffect to handle side effects within functional components
     useEffect(() => {
+        // Async function to load the ping sound from local assets
         const loadPingSound = async () => {
+            // Creating and loading an audio object for the ping sound
             return Audio.Sound.createAsync(
-                require('./sound/pingTolmet.mp3') // Ensure you have a ping sound file
-            ).then(({ sound }) => {
-                setPingSound(sound);
+                require('./sound/pingTolmet.mp3') // Path to the sound file
+            ).then(({sound}) => {
+                setPingSound(sound); // Saving the loaded sound in state for later use
             });
         };
 
+        // Initiating the sound loading and handling any potential errors
         loadPingSound().catch(error => {
             console.error("Failed to load ping sound", error);
         });
 
+        // Cleanup function to unload the sound from memory when the component unmounts or re-renders
         return () => {
-            pingSound?.unloadAsync(); // Clean up
+            pingSound?.unloadAsync();
         };
-    }, []);
+    }, []); // Empty dependency array means this effect runs once on mount
 
-// Function to play the ping sound
+// Function to play the ping sound when called
     const playPingSound = async () => {
-        const { sound } = await Audio.Sound.createAsync(
-            require('./sound/pingTolmet.mp3') // Ensure you have a ping sound file
+        const {sound} = await Audio.Sound.createAsync(
+            require('./sound/pingTolmet.mp3')
         );
         await sound.playAsync();
         sound.setOnPlaybackStatusUpdate(async (status) => {
             if (status.didJustFinish) {
-                await sound.unloadAsync(); // Unload sound from memory after playback is done
+                await sound.unloadAsync(); // Automatically unloading the sound once it finishes playing
             }
         });
     };
 
+// Function to play background music continuously during the game
     const playBackgroundMusic = async () => {
-        const { sound } = await Audio.Sound.createAsync(
-            require('./sound/gamingMusic.mp3'), // Replace with your own music file path
-            { shouldPlay: true, isLooping: true }
+        const {sound} = await Audio.Sound.createAsync(
+            require('./sound/gamingMusic.mp3'), // Loading a background music file
+            {shouldPlay: true, isLooping: true} // Setting music to play immediately and loop
         );
-        setBackgroundMusic(sound); // Save the sound object for later use
+        setBackgroundMusic(sound); // Saving the sound object for pausing or stopping later
     };
 
+// useEffect hook to handle playing background music when the game starts
     useEffect(() => {
         if (gameStarted) {
             (async () => {
-                await playBackgroundMusic();
+                await playBackgroundMusic(); // Playing background music asynchronously
             })();
         }
 
+        // Cleanup function to unload the music from memory when the game stops
         return () => {
             backgroundMusic?.unloadAsync();
         };
-    }, [gameStarted]);
+    }, [gameStarted]); // This effect depends on the gameStarted state
 
-
+// useEffect hook to update game entities based on the player's score
     useEffect(() => {
-        setEntities(generateInitialEntities(calculateActiveCoins(score))); // Adjust entities based on score
-    }, [score, gameStarted]);
+        setEntities(generateInitialEntities(calculateActiveCoins(score))); // Generating entities based on current score
+    }, [score, gameStarted]); // This effect depends on score and gameStarted state changes
 
+// Define a function to check if a new position is too close to any existing positions
     const isTooClose = useCallback((x, y, previousPositions) => {
+        // Use 'some' to check if at least one position is within a minimum distance
         return previousPositions.some(pos =>
             Math.sqrt(Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2)) < minimumDistance
         );
     }, []);
 
+// Generate a random position for a new entity, ensuring it does not overlap with existing entities
     const generateRandomPosition = useCallback((previousPositions) => {
         let x, y;
         do {
-            x = Math.random() * (width - coinWidth); // Adjust to ensure coins start fully on-screen
-            y = -Math.random() * 500; // Ensure coins start off-screen
-        } while (isTooClose(x, y, previousPositions));
+            // Generate random x within screen bounds, adjusting for entity width
+            x = Math.random() * (width - coinWidth);
+            // Generate random y above the screen to simulate falling
+            y = -Math.random() * 500;
+        } while (isTooClose(x, y, previousPositions)); // Repeat if position is too close to an existing one
         return {x, y};
     }, [isTooClose]);
 
+// Calculate the number of active coins based on the current score
     const calculateActiveCoins = useCallback((score) => {
-        // Start with 5 coins, increase by 5 for every 20 points scored
+        // Increase number of coins by 5 for every 20 points scored
         return defaultNumberOfCoins + Math.floor(score / 20) * 5;
     }, []);
 
-
+// Populate the initial game entities based on the number of coins
     const generateInitialEntities = useCallback((numCoins) => {
         let entities = {
+            // Static block entity
             block: {
                 x: width / 2 - 100,
                 y: height - 120,
@@ -115,6 +132,7 @@ export default function App() {
         let previousPositions = [];
         for (let i = 0; i < numCoins; i++) {
             const {x, y} = generateRandomPosition(previousPositions);
+            // Add coin entity with random position
             entities[`coin_${i}`] = {
                 x,
                 y,
@@ -122,43 +140,50 @@ export default function App() {
                 height: coinHeight,
                 renderer: <Coin/>,
             };
+            // Keep track of coin positions to avoid overlap
             previousPositions.push({x, y});
         }
         return entities;
     }, []);
 
+// Initialize game entities once the game starts and is loading
     useEffect(() => {
         if (gameStarted && isLoading) {
-            // Simulate or perform async entity loading here
+            // Delay to simulate async loading (e.g., loading assets)
             setTimeout(() => {
                 const initialEntities = generateInitialEntities(calculateActiveCoins(0));
-                setEntities(initialEntities); // Prepare entities
-                setIsLoading(false); // End loading once entities are ready
-            }, 5000); // Simulate async loading
+                setEntities(initialEntities); // Set the initial entities for the game
+                setIsLoading(false); // Mark loading as complete
+            }, 5000); // Delay duration in milliseconds
         }
     }, [gameStarted, isLoading]);
 
+// Hook to start the game, initializes game state.
     const startGame = useCallback(() => {
-        setGameStarted(true);
-        setIsLoading(true); // Trigger loading state
-        // No need to set entities here; useEffect will handle it based on dependencies
-        setScore(0);
-        setLives(3);
-        // Removal of direct entity setting allows useEffect to manage entity readiness
+        setGameStarted(true); // Mark the game as started.
+        setIsLoading(true); // Enable loading state, typically for async setup tasks.
+        // Initial game stat's setup.
+        setScore(0); // Reset score to 0.
+        setLives(3); // Set initial number of lives to 3.
+        // Entities are set up in a useEffect based on dependencies, not here, for cleaner separation of concerns.
     }, []);
 
+// Hook to reset the game to its initial state.
     const resetGame = useCallback(() => {
-        setScore(0);
-        setLives(3);
-        setGameStarted(false);
-        setResetSignal(true); // Trigger a reset
+        setScore(0); // Reset score to 0.
+        setLives(3); // Reset lives to 3.
+        setGameStarted(false); // Mark game as not started.
+        setResetSignal(true); // Signal to trigger a reset in components or hooks listening to this state.
         setTimeout(() => {
-            setResetSignal(false);
-            setEntities(generateInitialEntities(calculateActiveCoins(score))); // Reset entities upon game reset with dynamic number of coins
-        }, 100);
+            setResetSignal(false); // Clear reset signal after a short delay.
+            // Re-initialize game entities, potentially with adjustments based on the score.
+            setEntities(generateInitialEntities(calculateActiveCoins(score)));
+        }, 100); // Short delay to allow other components to react to reset signal.
     }, []);
 
+// Conditionally render game over, loading, start, or game play views based on game state.
     if (lives <= 0) {
+        // Render game over screen when no lives are left.
         return (
             <View style={styles.container}>
                 <View style={styles.overlayContainer}>
@@ -172,16 +197,16 @@ export default function App() {
             </View>
         );
     }
-    // Conditional rendering based on game state
+
     if (isLoading) {
-        // Show loading indicator while loading
+        // Render loading indicator during loading phase.
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="large" color="#0000ff"/>
             </View>
         );
     } else if (!gameStarted) {
-        // Show start game view
+        // Render start game view when game has not started yet.
         return (
             <View style={styles.container}>
                 <View style={styles.overlayContainer}>
@@ -193,27 +218,25 @@ export default function App() {
             </View>
         );
     } else {
+        // Main game view rendering when game is active.
         return (
             <View style={styles.gameContainer}>
-                {/* Position the logo in the center of the screen without affecting gameplay */}
                 <Image
                     source={require('./img/tolmetsLogo2.png')}
                     style={{
                         position: 'absolute',
-                        width: 260, // Adjust based on the logo size
-                        height: 260, // Adjust based on the logo size
-                        resizeMode: 'contain', // Ensure the logo is scaled correctly
-                        top: height / 2 - 130, // Center vertically, adjust based on the logo size
-                        left: width / 2 - 130, // Center horizontally, adjust based on the logo size
-                        opacity: 0.4, // Optionally set opacity to ensure game elements are visible
+                        width: 260,
+                        height: 260,
+                        resizeMode: 'contain',
+                        top: height / 2 - 130,
+                        left: width / 2 - 130,
+                        opacity: 0.4,
                     }}
                 />
-
-                {/* GameEngine and UI elements remain unchanged */}
                 <GameEngine
                     systems={[
                         MoveCoin(width, height, setLives, resetSignal, coinWidth),
-                        CollisionDetection(setScore, playPingSound, width), // Now passing playPingSound
+                        CollisionDetection(setScore, playPingSound, width),
                         DragHandler,
                     ]}
                     entities={entities}>
