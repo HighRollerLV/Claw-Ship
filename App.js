@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Text, Image, Dimensions, View, TouchableOpacity } from 'react-native';
-import { GameEngine } from 'react-native-game-engine';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {ActivityIndicator, Text, Image, Dimensions, View, TouchableOpacity} from 'react-native';
+import {GameEngine} from 'react-native-game-engine';
 import Coin from './src/components/Coin';
 import Block from './src/components/Block';
 import MoveCoin from './src/systems/MoveCoin';
 import CollisionDetection from './src/systems/CollisionDetection';
 import DragHandler from './src/systems/DragHandler';
-import { Audio } from 'expo-av';
+import {Audio} from 'expo-av';
 import styles from './AppStyles'; // Custom styles
 
 // Get device's width and height for layout calculations
-const { width, height } = Dimensions.get('window');
+const {width, height} = Dimensions.get('window');
 // Default settings
 const defaultNumberOfCoins = 6;
 const coinWidth = 35;
@@ -27,31 +27,9 @@ export default function App() {
     const [backgroundMusic, setBackgroundMusic] = useState(null); // State to hold background music object
     const [pingSound, setPingSound] = useState(null); // State to hold the sound played on scoring
 
-// Using Reacts useEffect to handle side effects within functional components
-    useEffect(() => {
-        // Async function to load the ping sound from local assets
-        const loadPingSound = async () => {
-            // Creating and loading an audio object for the ping sound
-            return Audio.Sound.createAsync(
-                require('./sound/pingTolmet.mp3') // Path to the sound file
-            ).then(({sound}) => {
-                setPingSound(sound); // Saving the loaded sound in state for later use
-            });
-        };
-
-        // Initiating the sound loading and handling any potential errors
-        loadPingSound().catch(error => {
-            console.error("Failed to load ping sound", error);
-        });
-
-        // Cleanup function to unload the sound from memory when the component unmounts or re-renders
-        return () => {
-            pingSound?.unloadAsync();
-        };
-    }, []); // Empty dependency array means this effect runs once on mount
 
 // Function to play the ping sound when called
-    const playPingSound = async () => {
+    const playPingSound = useCallback(async () => {
         const {sound} = await Audio.Sound.createAsync(
             require('./sound/pingTolmet.mp3')
         );
@@ -61,16 +39,16 @@ export default function App() {
                 await sound.unloadAsync(); // Automatically unloading the sound once it finishes playing
             }
         });
-    };
+    }, []);
 
 // Function to play background music continuously during the game
-    const playBackgroundMusic = async () => {
+    const playBackgroundMusic = useCallback(async () => {
         const {sound} = await Audio.Sound.createAsync(
             require('./sound/gamingMusic.mp3'), // Loading a background music file
             {shouldPlay: true, isLooping: true} // Setting music to play immediately and loop
         );
         setBackgroundMusic(sound); // Saving the sound object for pausing or stopping later
-    };
+    }, []);
 
 // useEffect hook to handle playing background music when the game starts
     useEffect(() => {
@@ -86,10 +64,29 @@ export default function App() {
         };
     }, [gameStarted]); // This effect depends on the gameStarted state
 
-// useEffect hook to update game entities based on the player's score
+
     useEffect(() => {
-        setEntities(generateInitialEntities(calculateActiveCoins(score))); // Generating entities based on current score
-    }, [score, gameStarted]); // This effect depends on score and gameStarted state changes
+        // Async function to load sounds
+        const loadSounds = async () => {
+            const [pingSound, backgroundMusic] = await Promise.all([
+                Audio.Sound.createAsync(require('./sound/pingTolmet.mp3')),
+                Audio.Sound.createAsync(require('./sound/gamingMusic.mp3'), {shouldPlay: false, isLooping: true})
+            ]);
+            setPingSound(pingSound.sound);
+            setBackgroundMusic(backgroundMusic.sound);
+        };
+
+        loadSounds().catch(error => {
+            console.error("Failed to load sounds", error);
+        });
+
+        // Cleanup function to unload the sounds from memory when the component unmounts
+        return () => {
+            pingSound?.unloadAsync();
+            backgroundMusic?.unloadAsync();
+        };
+    }, []);
+
 
 // Define a function to check if a new position is too close to any existing positions
     const isTooClose = useCallback((x, y, previousPositions) => {
@@ -111,19 +108,14 @@ export default function App() {
         return {x, y};
     }, [isTooClose]);
 
-// Calculate the number of active coins based on the current score
-    const calculateActiveCoins = useCallback((score) => {
-        // Increase number of coins by 5 for every 20 points scored
-        return defaultNumberOfCoins + Math.floor(score / 20) * 5;
-    }, []);
 
 // Populate the initial game entities based on the number of coins
-    const generateInitialEntities = useCallback((numCoins) => {
+    const generateInitialEntities = (numCoins) => {
         let entities = {
             // Static block entity
             block: {
-                x: width / 2 - 100,
-                y: height - 120,
+                x: width / 2 - 50, // Centered based on the block's width
+                y: height - 120 - 20, // Closer to the bottom of the screen
                 width: 100,
                 height: 120,
                 renderer: <Block/>,
@@ -144,14 +136,24 @@ export default function App() {
             previousPositions.push({x, y});
         }
         return entities;
-    }, []);
+    };
+
+
+    const memoizedEntities = useMemo(() => {
+        // We're passing the static number of coins here
+        return generateInitialEntities(defaultNumberOfCoins);
+    }, [gameStarted]); // Regenerate entities when game starts
+
+    useEffect(() => {
+        setEntities(memoizedEntities);
+    }, [memoizedEntities]);
 
 // Initialize game entities once the game starts and is loading
     useEffect(() => {
         if (gameStarted && isLoading) {
             // Delay to simulate async loading (e.g., loading assets)
             setTimeout(() => {
-                const initialEntities = generateInitialEntities(calculateActiveCoins(0));
+                const initialEntities = generateInitialEntities(defaultNumberOfCoins);
                 setEntities(initialEntities); // Set the initial entities for the game
                 setIsLoading(false); // Mark loading as complete
             }, 5000); // Delay duration in milliseconds
@@ -177,7 +179,7 @@ export default function App() {
         setTimeout(() => {
             setResetSignal(false); // Clear reset signal after a short delay.
             // Re-initialize game entities, potentially with adjustments based on the score.
-            setEntities(generateInitialEntities(calculateActiveCoins(score)));
+            setEntities(generateInitialEntities(defaultNumberOfCoins));
         }, 100); // Short delay to allow other components to react to reset signal.
     }, []);
 
