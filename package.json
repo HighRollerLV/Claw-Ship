@@ -30,7 +30,8 @@
     "react-native-screens": "~3.22.0",
     "react-native-web": "~0.19.6",
     "rxjs-compat": "^6.6.7",
-    "set-value": "^4.1.0"
+    "set-value": "^4.1.0",
+    "expo-build-properties": "~0.8.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

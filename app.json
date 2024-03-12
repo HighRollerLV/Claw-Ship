@@ -33,6 +33,9 @@
         "projectId": "c4f33df4-7d42-480e-883f-81fe027a9422"
       }
     },
-    "owner": "ralfsd"
+    "owner": "ralfsd",
+    "plugins": [
+      "expo-build-properties"
+    ]
   }
 }
